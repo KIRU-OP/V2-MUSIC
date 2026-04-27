@@ -37,61 +37,65 @@ class Userbot(Client):
             )
         return None
 
-    async def _start_assistant(self, client, assistant_num, session_string_name):
+    async def _start_assistant(self, client, assistant_num):
         if not client:
             return
 
         try:
             await client.start()
             
-            # --- GROUP JOIN LOGIC ---
-            if config.LOGGER_ID:
-                try:
-                    # Yaha hum Logger ID ya Link se join karwane ki koshish kar rahe hain
-                    await client.join_chat(config.LOGGER_ID)
-                    LOGGER(__name__).info(f"✅ Assistant {assistant_num} joined successfully.")
-                except UserAlreadyParticipant:
-                    pass # Pehle se join hai
-                except Exception as e:
-                    LOGGER(__name__).error(f"❌ Assistant {assistant_num} join nahi kar paya: {e}")
-
             # Assistant ki info nikalna
             get_me = await client.get_me()
             client.id = get_me.id
             client.name = get_me.mention
-            client.username = get_me.username
             
+            # FIX: Agar username nahi hai to empty string rakhein, None nahi
+            client.username = get_me.username if get_me.username else ""
+            
+            # --- LOGGER GROUP JOIN LOGIC ---
+            if config.LOGGER_ID:
+                try:
+                    await client.join_chat(config.LOGGER_ID)
+                    LOGGER(__name__).info(f"✅ Assistant {assistant_num} joined Logger Group.")
+                except UserAlreadyParticipant:
+                    pass
+                except Exception as e:
+                    LOGGER(__name__).error(f"❌ Assistant {assistant_num} Logger join nahi kar paya: {e}")
+
             assistants.append(assistant_num)
-            assistantids.append(client.id)
+            if client.id not in assistantids:
+                assistantids.append(client.id)
+                
             LOGGER(__name__).info(f"✅ Assistant {assistant_num} Started as {client.name}")
 
         except Exception as e:
-            LOGGER(__name__).error(f"🚫 Assistant {assistant_num} Error: {e}")
+            LOGGER(__name__).error(f"🚫 Assistant {assistant_num} Start Error: {e}")
 
     async def start(self):
         LOGGER(__name__).info("Starting Assistants...")
+        
+        # Individual starts with error safety
         if self.one:
-            await self._start_assistant(self.one, 1, "STRING1")
+            await self._start_assistant(self.one, 1)
         if self.two:
-            await self._start_assistant(self.two, 2, "STRING2")
+            await self._start_assistant(self.two, 2)
         if self.three:
-            await self._start_assistant(self.three, 3, "STRING3")
+            await self._start_assistant(self.three, 3)
         if self.four:
-            await self._start_assistant(self.four, 4, "STRING4")
+            await self._start_assistant(self.four, 4)
         if self.five:
-            await self._start_assistant(self.five, 5, "STRING5")
+            await self._start_assistant(self.five, 5)
 
         if not assistants:
-            LOGGER(__name__).error("🚫 Koi bhi assistant start nahi hua. Exiting...")
+            LOGGER(__name__).error("🚫 Koi bhi assistant start nahi hua. Please check your STRING sessions.")
             sys.exit()
 
     async def stop(self):
         LOGGER(__name__).info("Stopping Assistants...")
-        try:
-            if self.one: await self.one.stop()
-            if self.two: await self.two.stop()
-            if self.three: await self.three.stop()
-            if self.four: await self.four.stop()
-            if self.five: await self.five.stop()
-        except Exception as e:
-            LOGGER(__name__).error(f"Error stopping: {e}")
+        clients = [self.one, self.two, self.three, self.four, self.five]
+        for client in clients:
+            if client:
+                try:
+                    await client.stop()
+                except Exception:
+                    pass
