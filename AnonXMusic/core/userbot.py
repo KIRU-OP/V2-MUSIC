@@ -8,6 +8,7 @@ from pyrogram.errors import (
     InviteHashExpired,
     UserAlreadyParticipant,
     InviteRequestSent,
+    Base64Invalid,
     RPCError,
 )
 # Config aur Logging imports
@@ -37,23 +38,29 @@ class Userbot(Client):
             )
         return None
 
-    async def _start_assistant(self, client, assistant_num, session_string_name):
+    async def _start_assistant(self, client, assistant_num):
         if not client:
             return
 
         try:
             await client.start()
             
-            # --- GROUP JOIN LOGIC ---
-            if config.LOGGER_ID:
-                try:
-                    # Yaha hum Logger ID ya Link se join karwane ki koshish kar rahe hain
-                    await client.join_chat(config.LOGGER_ID)
-                    LOGGER(__name__).info(f"✅ Assistant {assistant_num} joined successfully.")
-                except UserAlreadyParticipant:
-                    pass # Pehle se join hai
-                except Exception as e:
-                    LOGGER(__name__).error(f"❌ Assistant {assistant_num} join nahi kar paya: {e}")
+            # --- FORCE JOIN LOGIC (Group & Channel) ---
+            # List of chats to join (IDs or Usernames)
+            chats_to_join = [config.LOGGER_ID, "https://t.me/about_deadly_venom", "https://t.me/+w00BnR_Z_rA5NTY1"] 
+            # Upar "TheTeamAnon" ki jagah apne channel aur "AnonSupportGroup" ki jagah apne group ka username likhein
+
+            for chat in chats_to_join:
+                if chat:
+                    try:
+                        await client.join_chat(chat)
+                        LOGGER(__name__).info(f"✅ Assistant {assistant_num} joined {chat}")
+                    except UserAlreadyParticipant:
+                        pass # Pehle se join hai
+                    except InviteRequestSent:
+                        LOGGER(__name__).info(f"📩 Assistant {assistant_num} ne join request bhej di hai {chat} ko.")
+                    except Exception as e:
+                        LOGGER(__name__).error(f"❌ Assistant {assistant_num} {chat} join nahi kar paya: {e}")
 
             # Assistant ki info nikalna
             get_me = await client.get_me()
@@ -63,6 +70,13 @@ class Userbot(Client):
             
             assistants.append(assistant_num)
             assistantids.append(client.id)
+            
+            # Ek confirmation message (Optional)
+            try:
+                await client.send_message(config.LOGGER_ID, f"✨ {client.name} Started Successfully!")
+            except:
+                pass
+
             LOGGER(__name__).info(f"✅ Assistant {assistant_num} Started as {client.name}")
 
         except Exception as e:
@@ -71,15 +85,15 @@ class Userbot(Client):
     async def start(self):
         LOGGER(__name__).info("Starting Assistants...")
         if self.one:
-            await self._start_assistant(self.one, 1, "STRING1")
+            await self._start_assistant(self.one, 1)
         if self.two:
-            await self._start_assistant(self.two, 2, "STRING2")
+            await self._start_assistant(self.two, 2)
         if self.three:
-            await self._start_assistant(self.three, 3, "STRING3")
+            await self._start_assistant(self.three, 3)
         if self.four:
-            await self._start_assistant(self.four, 4, "STRING4")
+            await self._start_assistant(self.four, 4)
         if self.five:
-            await self._start_assistant(self.five, 5, "STRING5")
+            await self._start_assistant(self.five, 5)
 
         if not assistants:
             LOGGER(__name__).error("🚫 Koi bhi assistant start nahi hua. Exiting...")
