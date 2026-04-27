@@ -19,6 +19,9 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 ## Other vaes
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 300))
 
+YTPROXY_URL = getenv("YTPROXY_URL", '') ## xBit Music Endpoint.
+YT_API_KEY = getenv("YT_API_KEY" , None )
+
 # Chat id of a group for logging bot's activities
 LOGGER_ID = int(getenv("LOGGER_ID"))
 
