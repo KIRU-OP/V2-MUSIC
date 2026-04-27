@@ -1,3 +1,6 @@
+#power by
+         #kiru_op
+              #fuck you 
 import asyncio
 import os
 import re
