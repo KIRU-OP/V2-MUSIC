@@ -1,186 +1,107 @@
 import sys
 from pyrogram import Client
-
 import config
-
 from ..logging import LOGGER
 
+# Global variables
 assistants = []
 assistantids = []
 
-
 class Userbot(Client):
     def __init__(self):
-        self.one = Client(
-            name="AnonXAss1",
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            session_string=str(config.STRING1),
-            no_updates=True,
-        )
-        self.two = Client(
-            name="AnonXAss2",
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            session_string=str(config.STRING2),
-            no_updates=True,
-        )
-        self.three = Client(
-            name="AnonXAss3",
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            session_string=str(config.STRING3),
-            no_updates=True,
-        )
-        self.four = Client(
-            name="AnonXAss4",
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            session_string=str(config.STRING4),
-            no_updates=True,
-        )
-        self.five = Client(
-            name="AnonXAss5",
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            session_string=str(config.STRING5),
-            no_updates=True,
-        )
+        self.one = None
+        self.two = None
+        self.three = None
+        self.four = None
+        self.five = None
+
+        # String sessions setup
+        if config.STRING1:
+            self.one = Client(
+                name="AnonXAss1",
+                api_id=config.API_ID,
+                api_hash=config.API_HASH,
+                session_string=str(config.STRING1),
+                no_updates=True,
+            )
+        if config.STRING2:
+            self.two = Client(
+                name="AnonXAss2",
+                api_id=config.API_ID,
+                api_hash=config.API_HASH,
+                session_string=str(config.STRING2),
+                no_updates=True,
+            )
+        if config.STRING3:
+            self.three = Client(
+                name="AnonXAss3",
+                api_id=config.API_ID,
+                api_hash=config.API_HASH,
+                session_string=str(config.STRING3),
+                no_updates=True,
+            )
+        if config.STRING4:
+            self.four = Client(
+                name="AnonXAss4",
+                api_id=config.API_ID,
+                api_hash=config.API_HASH,
+                session_string=str(config.STRING4),
+                no_updates=True,
+            )
+        if config.STRING5:
+            self.five = Client(
+                name="AnonXAss5",
+                api_id=config.API_ID,
+                api_hash=config.API_HASH,
+                session_string=str(config.STRING5),
+                no_updates=True,
+            )
 
     async def start(self):
-        LOGGER(__name__).info(f"Starting Assistants...")
-        if config.STRING1:
-            await self.one.start()
-            try:
-                await self.one.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
-                await self.one.join_chat("https://t.me/about_deadly_venom")
-            except:
-                pass
-            assistants.append(1)
-            try:
-                await self.one.send_message(config.LOGGER_ID, "Assistant Started")
-            except:
-                LOGGER(__name__).error(
-                    "Assistant Account 1 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin!"
-                )
-                exit()
-            self.one.id = self.one.me.id
-            self.one.name = self.one.me.mention
-            if not self.one.me.username:
-                LOGGER(__name__).error("Please set username to assistants and restart the bot again")
-                sys.exit()
-            self.one.username = self.one.me.username
-            assistantids.append(self.one.id)
-            LOGGER(__name__).info(f"Assistant Started as {self.one.name}")
+        LOGGER(__name__).info("Assistants start ho rahe hain...")
+        
+        # Clients ki list processing ke liye
+        clients = [
+            (1, self.one), (2, self.two), (3, self.three), 
+            (4, self.four), (5, self.five)
+        ]
 
-        if config.STRING2:
-            await self.two.start()
-            try:
-                await self.two.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
-                await self.one.join_chat("https://t.me/about_deadly_venom")
-            except:
-                pass
-            assistants.append(2)
-            try:
-                await self.two.send_message(config.LOGGER_ID, "Assistant Started")
-            except:
-                LOGGER(__name__).error(
-                    "Assistant Account 2 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin!"
-                )
-                exit()
-            self.two.id = self.two.me.id
-            self.two.name = self.two.me.mention
-            if not self.two.me.username:
-                LOGGER(__name__).error("Please set username to assistants and restart the bot again")
-                sys.exit()
-            self.two.username = self.two.me.username
-            assistantids.append(self.two.id)
-            LOGGER(__name__).info(f"Assistant Two Started as {self.two.name}")
+        for i, client in clients:
+            if client:
+                await client.start()
+                
+                # Group join karwana
+                try:
+                    await client.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
+                    await client.join_chat("https://t.me/about_deadly_venom")
+                except:
+                    pass
 
-        if config.STRING3:
-            await self.three.start()
-            try:
-                await self.three.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
-                await self.one.join_chat("https://t.me/about_deadly_venom")
-            except:
-                pass
-            assistants.append(3)
-            try:
-                await self.three.send_message(config.LOGGER_ID, "Assistant Started")
-            except:
-                LOGGER(__name__).error(
-                    "Assistant Account 3 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
-                )
-                exit()
-            self.three.id = self.three.me.id
-            self.three.name = self.three.me.mention
-            if not self.three.me.username:
-                LOGGER(__name__).error("Please set username to assistants and restart the bot again")
-                sys.exit()
-            self.three.username = self.three.me.username
-            assistantids.append(self.three.id)
-            LOGGER(__name__).info(f"Assistant Three Started as {self.three.name}")
+                # Log group checking
+                try:
+                    await client.send_message(config.LOGGER_ID, f"Assistant {i} Started ✅")
+                except:
+                    LOGGER(__name__).error(f"Assistant {i} Log Group mein message nahi bhej pa raha! Assistant ko Log Group mein Admin banayein.")
 
-        if config.STRING4:
-            await self.four.start()
-            try:
-                await self.four.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
-                await self.one.join_chat("https://t.me/about_deadly_venom")
-            except:
-                pass
-            assistants.append(4)
-            try:
-                await self.four.send_message(config.LOGGER_ID, "Assistant Started")
-            except:
-                LOGGER(__name__).error(
-                    "Assistant Account 4 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
-                )
-                exit()
-            self.four.id = self.four.me.id
-            self.four.name = self.four.me.mention
-            if not self.four.me.username:
-                LOGGER(__name__).error("Please set username to assistants and restart the bot again")
-                sys.exit()
-            self.four.username = self.four.me.username
-            assistantids.append(self.four.id)
-            LOGGER(__name__).info(f"Assistant Four Started as {self.four.name}")
-
-        if config.STRING5:
-            await self.five.start()
-            try:
-                await self.five.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
-                await self.one.join_chat("https://t.me/about_deadly_venom")
-            except:
-                pass
-            assistants.append(5)
-            try:
-                await self.five.send_message(config.LOGGER_ID, "Assistant Started")
-            except:
-                LOGGER(__name__).error(
-                    "Assistant Account 5 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
-                )
-                exit()
-            self.five.id = self.five.me.id
-            self.five.name = self.five.me.mention
-            if not self.five.me.username:
-                LOGGER(__name__).error("Please set username to assistants and restart the bot again")
-                sys.exit()
-            self.five.username = self.five.me.username
-            assistantids.append(self.five.id)
-            LOGGER(__name__).info(f"Assistant Five Started as {self.five.name}")
+                # Account details set karna
+                get_me = await client.get_me()
+                client.id = get_me.id
+                client.name = get_me.mention
+                
+                # AGAR USERNAME NAHI HAI TOH BHI BOT NAHI RUKEGA
+                client.username = get_me.username if get_me.username else ""
+                
+                assistants.append(i)
+                if client.id not in assistantids:
+                    assistantids.append(client.id)
+                
+                LOGGER(__name__).info(f"Assistant {i} Started as {client.name}")
 
     async def stop(self):
-        LOGGER(__name__).info(f"Stopping Assistants...")
-        try:
-            if config.STRING1:
-                await self.one.stop()
-            if config.STRING2:
-                await self.two.stop()
-            if config.STRING3:
-                await self.three.stop()
-            if config.STRING4:
-                await self.four.stop()
-            if config.STRING5:
-                await self.five.stop()
-        except:
-            pass
+        LOGGER(__name__).info("Assistants stop ho rahe hain...")
+        for client in [self.one, self.two, self.three, self.four, self.five]:
+            if client:
+                try:
+                    await client.stop()
+                except:
+                    pass
