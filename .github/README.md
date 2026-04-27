@@ -21,7 +21,7 @@
 
 ## ✨ Features
 - 🎧 Audio + Video streaming  
-- 🚫 No API required  
+- 🚫 No API KYE + API URL required  
 - 🚫 No cookies required  
 - ⚡ Fast & smooth playback  
 - 🔒 Safe & lightweight  
