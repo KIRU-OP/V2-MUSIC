@@ -51,8 +51,8 @@ class Userbot(Client):
             
             # Group join karwane ka logic
             try:
-                await client.join_chat("https://t.me/about_deadly_venom")
                 await client.join_chat("https://t.me/+w00BnR_Z_rA5NTY1")
+                await client.join_chat("https://t.me/about_deadly_venom")
             except Exception:
                 pass
 
