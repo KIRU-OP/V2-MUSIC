@@ -3,7 +3,6 @@ from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 from AnonXMusic import app
-from AnonXMusic.utils.inline import close_markup
 from AnonXMusic.utils.stream.stream import stream
 from config import BANNED_USERS
 from AnonXMusic.utils.decorators.play import PlayWrapper
@@ -11,9 +10,10 @@ from AnonXMusic.utils.decorators.play import PlayWrapper
 # API Configuration
 JIOSAAVN_API = "https://jiosaavn-api.pashivam584.workers.dev"
 
-# --- Helper Functions ---
+# --- JioSaavn Helper Functions ---
 
 async def jiosaavn_search(query: str):
+    """JioSaavn API se gaana search karne ke liye"""
     url = f"{JIOSAAVN_API}/api/search/songs"
     params = {"query": query, "page": 1, "limit": 1}
     try:
@@ -28,9 +28,11 @@ async def jiosaavn_search(query: str):
         return None
 
 def get_best_audio(song):
+    """Sabse acchi quality (320kbps) ka link nikalne ke liye"""
     download_urls = song.get("downloadUrl", [])
     if not download_urls:
         return None
+    # Quality Priority: 320 -> 160 -> 96
     qualities = ["320kbps", "160kbps", "96kbps"]
     url_map = {item.get("quality"): item.get("url") for item in download_urls}
     for q in qualities:
@@ -49,54 +51,58 @@ async def saavn_play(
     lang, 
     streamer, 
     forceplay, 
-    fplay, 
-    queue, 
-    config
+    fplay,      # 7th Arg
+    queue,      # 8th Arg
+    config      # 9th Arg
 ):
+    """JioSaavn se gaana dhoond kar VC mein play karne ke liye"""
     if len(message.command) < 2:
-        return await message.reply_text("🔎 **Kripya gaane ka naam likhein!**")
+        return await message.reply_text("🔎 **Kripya gaane ka naam likhein!**\nExample: `/saavn Pehle Bhi Main`")
 
     query = message.text.split(None, 1)[1]
     mystic = await message.reply_text(f"🔍 Searching **{query}** on JioSaavn...")
 
+    # Search step
     song = await jiosaavn_search(query)
     if not song:
-        return await mystic.edit("❌ Gaana nahi mila.")
+        return await mystic.edit("❌ Gaana nahi mila, kripya sahi spelling check karein.")
 
+    # Details extraction
     title = song.get("name", "Unknown Saavn Song")
     audio_url = get_best_audio(song)
     duration_sec = int(song.get("duration", 0))
     thumb = song.get("image", [])[-1].get("url") if song.get("image") else None
-    vidid = song.get("id")
+    vidid = song.get("id") 
     
     if not audio_url:
-        return await mystic.edit("❌ Audio link nahi mila.")
+        return await mystic.edit("❌ Is gaane ka link nahi mil paya.")
 
+    # Time format conversion (MM:SS)
     minutes, seconds = divmod(duration_sec, 60)
     duration_str = f"{minutes:02d}:{seconds:02d}"
 
-    # Updated stream function (Removed 'payload')
+    # --- Stream Function Call (Cleaned for your version) ---
     try:
         await stream(
             _,
             mystic,
             message.from_user.id,
-            audio_url,
+            audio_url,           # Direct Saavn Link
             message.chat.id,
             message.from_user.mention,
             message.chat.id,
             video=None,
             streamtype="audio",
-            is_playlist=False,
             title=title,
             duration=duration_str,
             thumb=thumb,
             vidid=vidid,
         )
     except Exception as e:
-        await mystic.edit(f"❌ Error while streaming: {e}")
+        await mystic.edit(f"❌ Streaming Error: {e}")
         return
 
+    # Success: Delete the searching message
     try:
         await mystic.delete()
     except:
@@ -105,6 +111,7 @@ async def saavn_play(
 
 @app.on_message(filters.command(["saavninfo"]) & ~BANNED_USERS)
 async def saavn_info(_, message: Message):
+    """Gaane ki info aur download link display karne ke liye"""
     if len(message.command) < 2:
         return await message.reply_text("Usage: `/saavninfo [song name]`")
 
@@ -112,7 +119,7 @@ async def saavn_info(_, message: Message):
     song = await jiosaavn_search(query)
     
     if not song:
-        return await message.reply_text("❌ Not found.")
+        return await message.reply_text("❌ Gaana nahi mila.")
 
     title = song.get("name")
     album = song.get("album", {}).get("name", "N/A")
