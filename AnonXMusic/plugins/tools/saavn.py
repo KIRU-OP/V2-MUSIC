@@ -7,13 +7,13 @@ from AnonXMusic.utils.stream.stream import stream
 from config import BANNED_USERS
 from AnonXMusic.utils.decorators.play import PlayWrapper
 
-# API Configuration
+# JioSaavn API URL
 JIOSAAVN_API = "https://jiosaavn-api.pashivam584.workers.dev"
 
-# --- JioSaavn Helper Functions ---
+# --- Helper Functions ---
 
 async def jiosaavn_search(query: str):
-    """JioSaavn API se gaana search karne ke liye"""
+    """JioSaavn se gaana search karne ke liye"""
     url = f"{JIOSAAVN_API}/api/search/songs"
     params = {"query": query, "page": 1, "limit": 1}
     try:
@@ -28,11 +28,11 @@ async def jiosaavn_search(query: str):
         return None
 
 def get_best_audio(song):
-    """Sabse acchi quality (320kbps) ka link nikalne ke liye"""
+    """Best quality audio link nikalne ke liye"""
     download_urls = song.get("downloadUrl", [])
     if not download_urls:
         return None
-    # Quality Priority: 320 -> 160 -> 96
+    # Best quality priority
     qualities = ["320kbps", "160kbps", "96kbps"]
     url_map = {item.get("quality"): item.get("url") for item in download_urls}
     for q in qualities:
@@ -40,7 +40,7 @@ def get_best_audio(song):
             return url_map[q]
     return download_urls[-1].get("url") if download_urls else None
 
-# --- Main Play Command ---
+# --- Play Command ---
 
 @app.on_message(filters.command(["saavn", "jsaavn"]) & filters.group & ~BANNED_USERS)
 @PlayWrapper
@@ -51,58 +51,45 @@ async def saavn_play(
     lang, 
     streamer, 
     forceplay, 
-    fplay,      # 7th Arg
-    queue,      # 8th Arg
-    config      # 9th Arg
+    fplay, 
+    queue, 
+    config
 ):
-    """JioSaavn se gaana dhoond kar VC mein play karne ke liye"""
+    """Gaana search karke direct VC mein play karne ke liye"""
     if len(message.command) < 2:
         return await message.reply_text("🔎 **Kripya gaane ka naam likhein!**\nExample: `/saavn Pehle Bhi Main`")
 
     query = message.text.split(None, 1)[1]
     mystic = await message.reply_text(f"🔍 Searching **{query}** on JioSaavn...")
 
-    # Search step
     song = await jiosaavn_search(query)
     if not song:
-        return await mystic.edit("❌ Gaana nahi mila, kripya sahi spelling check karein.")
+        return await mystic.edit("❌ Gaana nahi mila.")
 
-    # Details extraction
-    title = song.get("name", "Unknown Saavn Song")
     audio_url = get_best_audio(song)
-    duration_sec = int(song.get("duration", 0))
-    thumb = song.get("image", [])[-1].get("url") if song.get("image") else None
-    vidid = song.get("id") 
-    
     if not audio_url:
         return await mystic.edit("❌ Is gaane ka link nahi mil paya.")
 
-    # Time format conversion (MM:SS)
-    minutes, seconds = divmod(duration_sec, 60)
-    duration_str = f"{minutes:02d}:{seconds:02d}"
-
-    # --- Stream Function Call (Cleaned for your version) ---
+    # --- Standard Stream Function (Positional Arguments Only) ---
+    # Naye AnonXMusic versions mein keywords ('title=', etc.) error dete hain
+    # Isliye hum sirf values bhej rahe hain
     try:
         await stream(
-            _,
-            mystic,
-            message.from_user.id,
-            audio_url,           # Direct Saavn Link
-            message.chat.id,
-            message.from_user.mention,
-            message.chat.id,
-            video=None,
-            streamtype="audio",
-            title=title,
-            duration=duration_str,
-            thumb=thumb,
-            vidid=vidid,
+            _,                  # client
+            mystic,             # processing message
+            message.from_user.id, # user id
+            audio_url,          # link
+            message.chat.id,    # chat id
+            message.from_user.mention, # user name
+            message.chat.id,    # original chat id
+            None,               # video (None for audio)
+            "audio",            # streamtype
         )
     except Exception as e:
-        await mystic.edit(f"❌ Streaming Error: {e}")
+        await mystic.edit(f"❌ Error while streaming: {e}")
         return
 
-    # Success: Delete the searching message
+    # Delete 'searching' message after successful stream start
     try:
         await mystic.delete()
     except:
@@ -111,7 +98,7 @@ async def saavn_play(
 
 @app.on_message(filters.command(["saavninfo"]) & ~BANNED_USERS)
 async def saavn_info(_, message: Message):
-    """Gaane ki info aur download link display karne ke liye"""
+    """Sirf gaane ki details dekhne ke liye"""
     if len(message.command) < 2:
         return await message.reply_text("Usage: `/saavninfo [song name]`")
 
@@ -123,13 +110,11 @@ async def saavn_info(_, message: Message):
 
     title = song.get("name")
     album = song.get("album", {}).get("name", "N/A")
-    artist = song.get("artists", {}).get("primary", [{}])[0].get("name", "N/A")
     audio = get_best_audio(song)
     image = song.get("image", [])[-1].get("url") if song.get("image") else None
 
     caption = (
         f"🎵 **Title:** {title}\n"
-        f"👤 **Artist:** {artist}\n"
         f"💿 **Album:** {album}\n\n"
         f"🚀 **Powered by JioSaavn**"
     )
