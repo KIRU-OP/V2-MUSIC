@@ -7,13 +7,11 @@ from AnonXMusic.utils.stream.stream import stream
 from config import BANNED_USERS
 from AnonXMusic.utils.decorators.play import PlayWrapper
 
-# API Configuration
+# JioSaavn API Configuration
 JIOSAAVN_API = "https://jiosaavn-api.pashivam584.workers.dev"
 
-# --- Helper Functions ---
-
+# --- Helper: Gaana Search Karne Ke Liye ---
 async def jiosaavn_search(query: str):
-    """JioSaavn API se song search karne ke liye"""
     url = f"{JIOSAAVN_API}/api/search/songs"
     params = {"query": query, "page": 1, "limit": 1}
     try:
@@ -22,23 +20,28 @@ async def jiosaavn_search(query: str):
                 if resp.status != 200:
                     return None
                 data = await resp.json()
-                results = data.get("data", {}).get("results", [])
-                return results[0] if results else None
+                # Check status and results
+                if data.get("status") == "SUCCESS":
+                    results = data.get("data", {}).get("results", [])
+                    return results[0] if results else None
+                return None
     except Exception:
         return None
 
+# --- Helper: Best Quality Link Nikalne Ke Liye ---
 def get_best_audio(song):
-    """Best available audio link (320kbps) nikalne ke liye"""
+    if not song: return None
     download_urls = song.get("downloadUrl", [])
-    if not download_urls:
-        return None
-    # Priority Order: 320 -> 160 -> 96
+    if not download_urls: return None
+    
+    # Best Quality (320kbps) pehle check karega
     qualities = ["320kbps", "160kbps", "96kbps"]
     url_map = {item.get("quality"): item.get("url") for item in download_urls}
+    
     for q in qualities:
         if q in url_map:
             return url_map[q]
-    return download_urls[-1].get("url") if download_urls else None
+    return download_urls[-1].get("url")
 
 # --- Main Play Command ---
 
@@ -51,42 +54,44 @@ async def saavn_play(
     lang, 
     streamer, 
     forceplay, 
-    fplay,      # 7th Arg
-    queue,      # 8th Arg
-    config      # 9th Arg
+    fplay,      
+    queue,      
+    config      
 ):
-    """JioSaavn se search karke VC mein play karega"""
+    """Voice Chat mein JioSaavn gaana play karne ke liye"""
     if len(message.command) < 2:
-        return await message.reply_text("🔎 **Kripya gaane ka naam likhein!**\nExample: `/saavn Animal Songs`")
+        return await message.reply_text("🔎 **Kripya gaane ka naam likhein!**\nExample: `/saavn Kesariya`")
 
     query = message.text.split(None, 1)[1]
     mystic = await message.reply_text(f"🔍 Searching **{query}** on JioSaavn...")
 
-    # Song Search
+    # 1. Search Result
     song = await jiosaavn_search(query)
     if not song:
-        return await mystic.edit("❌ Gaana nahi mila, kripya sahi spelling check karein.")
+        return await mystic.edit("❌ Gaana nahi mila, kripya spelling check karein.")
 
+    # 2. Get Audio URL
     audio_url = get_best_audio(song)
     if not audio_url:
-        return await mystic.edit("❌ Is gaane ka link nahi mil paya.")
+        return await mystic.edit("❌ Is gaane ka play link nahi mil paya.")
 
-    # --- Assistant Triggering Stream Call ---
-    # Hum Exactly 11 arguments bhej rahe hain bina kisi keyword (title=) ke.
-    # Ye order AnonX/Yukki ke naye versions ke liye hai jo Assistant ko join karwata hai.
+    title = song.get("name", "JioSaavn Stream")
+    user_name = message.from_user.mention
+
+    # 3. Trigger Streaming (Assistant Voice Chat join karega)
     try:
         await stream(
-            _,                      # 1. client
-            mystic,                 # 2. message status
-            message.from_user.id,   # 3. user_id
-            audio_url,              # 4. link (Saavn direct link)
-            message.chat.id,        # 5. chat_id
-            message.from_user.mention, # 6. user_name
-            message.chat.id,        # 7. original_chat_id
-            None,                   # 8. video (None for audio)
-            "youtube",              # 9. streamtype (YouTube path handles links best)
-            None,                   # 10. spotify (None)
-            forceplay,              # 11. forceplay (Triggers Assistant)
+            _,                      # Client
+            mystic,                 # Status message
+            message.from_user.id,   # User ID
+            audio_url,              # Direct Link (Saavn)
+            message.chat.id,        # Chat ID
+            user_name,              # Name
+            message.chat.id,        # Original Chat ID
+            None,                   # Video (None for audio)
+            "index",                # 🔥 FIXED: 'index' use karein direct links ke liye
+            None,                   # Spotify
+            forceplay,              # Forceplay check
         )
     except Exception as e:
         await mystic.edit(f"❌ Streaming Error: {e}")
@@ -101,7 +106,7 @@ async def saavn_play(
 
 @app.on_message(filters.command(["saavninfo"]) & ~BANNED_USERS)
 async def saavn_info(_, message: Message):
-    """Gaane ki details aur download link dekhne ke liye"""
+    """Gaane ki details dikhane ke liye"""
     if len(message.command) < 2:
         return await message.reply_text("Usage: `/saavninfo [song name]`")
 
@@ -114,7 +119,8 @@ async def saavn_info(_, message: Message):
     title = song.get("name")
     artist = song.get("artists", {}).get("primary", [{}])[0].get("name", "N/A")
     audio = get_best_audio(song)
-    image = song.get("image", [])[-1].get("url") if song.get("image") else None
+    image_list = song.get("image", [])
+    image = image_list[-1].get("url") if image_list else None
 
     caption = (
         f"🎵 **Title:** {title}\n"
