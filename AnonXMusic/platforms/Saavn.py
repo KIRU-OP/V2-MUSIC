@@ -4,7 +4,6 @@ from typing import Optional
 
 class SaavnAPI:
     def __init__(self):
-        # Aapki working API
         self.api_url = "https://jiosaavn-api.pashivam584.workers.dev"
         self.regex = r"^(https?:\/\/)?(www\.)?(jiosaavn\.com\/song\/.*)$"
 
@@ -14,9 +13,10 @@ class SaavnAPI:
         return False
 
     async def search(self, query: str):
-        # Pashivam API usually uses /api/search/songs
+        # API Endpoint check
         url = f"{self.api_url}/api/search/songs"
-        params = {"query": query}
+        params = {"query": str(query)}
+        
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params, timeout=10) as resp:
@@ -24,19 +24,25 @@ class SaavnAPI:
                         return None
                     data = await resp.json()
             
-            # Pashivam API structure: data -> results -> [0]
-            if data.get("status") == "SUCCESS":
-                inner_data = data.get("data", {})
-                if isinstance(inner_data, dict):
-                    results = inner_data.get("results", [])
-                else:
-                    results = inner_data # Kuch versions mein direct list hoti hai
-                
-                if results and len(results) > 0:
-                    return results[0]
+            # Debugging: Agar aap terminal check karenge to wahan data dikhega
+            if not data or data.get("status") != "SUCCESS":
+                return None
+
+            # Pashivam API structure: data -> data -> results
+            # Kabhi-kabhi data['data'] hi results ki list hoti hai
+            res_data = data.get("data")
+            if isinstance(res_data, dict):
+                results = res_data.get("results", [])
+            elif isinstance(res_data, list):
+                results = res_data
+            else:
+                results = []
+
+            if results:
+                return results[0]
             return None
         except Exception as e:
-            print(f"Saavn Search Error: {e}")
+            print(f"Search Exception: {e}")
             return None
 
     async def get_link(self, query: str):
@@ -45,29 +51,36 @@ class SaavnAPI:
             return None
         
         try:
-            # Metadata extraction
-            title = data.get("name", "Unknown Song")
+            # Name and Title handle
+            title = data.get("name") or data.get("title") or "Unknown Song"
             duration = int(data.get("duration", 0))
             
-            # Thumbnail extraction (Last one is highest quality)
-            images = data.get("image", [])
-            thumbnail = images[-1].get("url") if images else None
-            
-            # Audio link extraction (320kbps is best)
-            download_urls = data.get("downloadUrl", [])
+            # Thumbnail
+            images = data.get("image")
+            thumbnail = None
+            if isinstance(images, list) and images:
+                thumbnail = images[-1].get("url")
+            elif isinstance(images, str):
+                thumbnail = images
+
+            # Audio Link (Download URL)
+            download_urls = data.get("downloadUrl")
             stream_url = None
             
-            if download_urls:
-                # 320kbps check karein
+            if isinstance(download_urls, list) and download_urls:
+                # Sabse pehle 320kbps dhoondho
                 for item in download_urls:
                     if item.get("quality") == "320kbps":
                         stream_url = item.get("url")
                         break
-                # Agar 320 nahi mila to koi bhi (usually last one is better)
+                # Agar nahi mila to pehla wala le lo
                 if not stream_url:
                     stream_url = download_urls[-1].get("url")
             
+            if not stream_url:
+                return None
+
             return title, duration, thumbnail, stream_url
         except Exception as e:
-            print(f"Saavn Parsing Error: {e}")
+            print(f"Parsing Exception: {e}")
             return None
