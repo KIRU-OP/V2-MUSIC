@@ -1,5 +1,6 @@
 from .Apple import AppleAPI
 from .Carbon import CarbonAPI
+from .Saavn import SaavnAPI
 from .Resso import RessoAPI
 from .Soundcloud import SoundAPI
 from .Spotify import SpotifyAPI
