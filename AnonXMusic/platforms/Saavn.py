@@ -23,7 +23,7 @@ class SaavnAPI:
                 results = data.get("data", {}).get("results", [])
                 return results[0] if results else None
             return None
-        except:
+        except Exception:
             return None
 
     async def get_link(self, query: str):
@@ -35,7 +35,6 @@ class SaavnAPI:
         duration = int(data.get("duration", 0))
         thumbnail = data.get("image", [{}])[-1].get("url")
         
-        # Audio URL extraction
         download_urls = data.get("downloadUrl", [])
         stream_url = None
         for q in ["320kbps", "160kbps", "96kbps"]:
