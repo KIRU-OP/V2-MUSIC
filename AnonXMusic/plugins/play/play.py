@@ -1,3 +1,4 @@
+import re
 from pyrogram import filters
 from pyrogram.types import Message
 import config
@@ -8,7 +9,7 @@ from AnonXMusic.utils.stream.stream import stream
 from config import BANNED_USERS
 
 @app.on_message(
-    filters.command(["play", "vplay", "cplay", "cvplay"])
+    filters.command(["play", "vplay", "cplay", "cvplay", "playforce", "vplayforce"])
     & filters.group
     & ~BANNED_USERS
 )
@@ -19,7 +20,7 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
     elif len(message.command) > 1:
         query = message.text.split(None, 1)[1]
     else:
-        return await message.reply_text("❌ Gaane ka naam likhein.")
+        return await message.reply_text("❌ Gaane ka naam likhein ya JioSaavn link dein.")
 
     mystic = await message.reply_text(f"🔎 Searching **{query}** on JioSaavn...")
 
@@ -31,18 +32,25 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
         
         title, duration, thumb, stream_url = res
         
-        # --- FIXED DETAILS FOR ANONX CORE ---
-        # AnonX ka 'telegram' streamtype dictionary se 'path' (string) uthata hai.
-        # Isse media_path error nahi aayega.
+        # Duration ko minutes mein convert karna (Thumb aur Message ke liye)
+        dur_min = seconds_to_min(duration)
+        
+        # Videoid generate karna taaki thumbnail function trigger ho
+        # Hum title se hi ek unique id bana lete hain
+        clean_id = re.sub(r"\W+", "", str(title))[:10]
+
+        # --- COMPLETE DETAILS FOR JIOSAAVN ---
         details = {
             "title": title,
             "link": stream_url,
-            "path": str(stream_url), # Path must be a string URL
-            "dur": duration,
+            "path": str(stream_url), 
+            "videoid": clean_id,
+            "duration_min": dur_min,
             "thumb": thumb,
         }
 
-        # Stream Play (Using telegram streamtype to handle dictionary input)
+        # PLAY LOGIC 
+        # Note: streamtype="saavn" use karne se 'stream.py' bada photo message bhejega
         await stream(
             _, 
             mystic, 
@@ -52,10 +60,12 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
             message.from_user.first_name, 
             message.chat.id, 
             video=video, 
-            streamtype="telegram", 
+            streamtype="saavn", 
             forceplay=fplay
         )
-        await mystic.delete()
+        
+        # Mystic delete yahan nahi karenge, stream function khud handles karta hai
+        # Agar Assistant VC join nahi karta toh check karein 'streamtype' in stream.py
 
     except Exception as e:
         print(f"Play Error: {e}")
