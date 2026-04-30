@@ -1,15 +1,13 @@
-FROM python:3.13-slim
+FROM python:3.11-slim
 
-# 1. Install uv
+# 1. Install uv (Faster than pip)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# 2. Set Directory
+# 2. Set Working Directory
 WORKDIR /app
 COPY . /app/
 
-# 3. Install System Dependencies
-# Python 3.13 naya hai, isliye build-essential aur python3-dev zaroori hain 
-# taaki jo packages ready nahi hain wo compile ho sakein.
+# 3. Install System Dependencies (Music Bot ke liye zaroori hain)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -22,11 +20,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libffi-dev \
     pkg-config \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Install Dependencies using uv (Fixed Command)
-# 'uv sync' ki jagah 'uv pip install' use kiya hai jo zyada stable hai 
-# aur '--system' taaki Railway ke environment mein direct chale.
+# 4. Install Python Dependencies using uv
+# --system use kar rahe hain kyunki container mein venv ki zaroorat nahi hoti
 RUN uv pip install --system --no-cache -r requirements.txt
 
 # 5. Bot Start Command
