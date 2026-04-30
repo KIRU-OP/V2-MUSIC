@@ -1,11 +1,15 @@
 from pyrogram import filters
 from pyrogram.types import Message
 import config
-from AnonXMusic import Saavn, Telegram, app
+from AnonXMusic import app, Telegram
+from AnonXMusic.platforms.Saavn import SaavnAPI # Direct Import
 from AnonXMusic.utils import seconds_to_min
 from AnonXMusic.utils.decorators.play import PlayWrapper
 from AnonXMusic.utils.stream.stream import stream
 from config import BANNED_USERS
+
+# Local instance banayein
+Saavn = SaavnAPI()
 
 @app.on_message(
     filters.command(["play", "vplay", "cplay", "cvplay"])
@@ -14,7 +18,6 @@ from config import BANNED_USERS
 )
 @PlayWrapper
 async def play_commnd(client, message: Message, _, chat_id, video, channel, playmode, url, fplay):
-    # Search Query nikalna
     if url:
         query = url
     elif len(message.command) > 1:
@@ -28,7 +31,8 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
         # Saavn API call
         res = await Saavn.get_link(query)
         if not res:
-            return await mystic.edit_text("❌ JioSaavn par gaana nahi mila! Dubara koshish karein.")
+            # Agar Saavn fail ho jaye to ye message aayega
+            return await mystic.edit_text(f"❌ JioSaavn par **{query}** nahi mila.\nAPI Check karein.")
         
         title, duration, thumb, stream_url = res
         
@@ -39,7 +43,7 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
             "duration_min": seconds_to_min(duration),
         }
 
-        # Play Stream
+        # Stream Play
         await stream(
             _, mystic, message.from_user.id, details, chat_id, 
             message.from_user.first_name, message.chat.id, 
@@ -48,4 +52,5 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
         await mystic.delete()
 
     except Exception as e:
+        print(f"Play Error: {e}")
         await mystic.edit_text(f"❌ Error: {e}")
