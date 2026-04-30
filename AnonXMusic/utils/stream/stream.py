@@ -5,7 +5,7 @@ from typing import Union
 from pyrogram.types import InlineKeyboardMarkup
 
 import config
-from AnonXMusic import Carbon, YouTube, app
+from AnonXMusic import Carbon, saavn, app
 from AnonXMusic.core.call import Anony
 from AnonXMusic.misc import db
 from AnonXMusic.utils.database import add_active_video_chat, is_active_chat
@@ -33,6 +33,77 @@ async def stream(
         return
     if forceplay:
         await Anony.force_stop_stream(chat_id)
+
+    # ── JIOSAAVN STREAMING LOGIC ──
+    if streamtype == "saavn":
+        file_path = result["path"]
+        title = (result["title"]).title()
+        duration_min = result["duration_min"]
+        thumbnail = result["thumb"]
+        vidid = result["videoid"]
+        
+        if await is_active_chat(chat_id):
+            await put_queue(
+                chat_id,
+                original_chat_id,
+                file_path,
+                title,
+                duration_min,
+                user_name,
+                vidid,
+                user_id,
+                "video" if video else "audio",
+            )
+            position = len(db.get(chat_id)) - 1
+            button = aq_markup(_, chat_id)
+            await app.send_message(
+                chat_id=original_chat_id,
+                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
+                reply_markup=InlineKeyboardMarkup(button),
+            )
+        else:
+            if not forceplay:
+                db[chat_id] = []
+            await Anony.join_call(
+                chat_id,
+                original_chat_id,
+                file_path,
+                video=video,
+                image=thumbnail,
+            )
+            await put_queue(
+                chat_id,
+                original_chat_id,
+                file_path,
+                title,
+                duration_min,
+                user_name,
+                vidid,
+                user_id,
+                "video" if video else "audio",
+                forceplay=forceplay,
+            )
+            
+            # Generating Saavn Thumbnail
+            img = await get_thumb(vidid, user_id, title, duration_min, thumbnail)
+            button = stream_markup(_, chat_id)
+            run = await app.send_photo(
+                original_chat_id,
+                photo=img,
+                caption=_["stream_1"].format(
+                    f"https://t.me/{app.username}",
+                    title[:23],
+                    duration_min,
+                    user_name,
+                ),
+                reply_markup=InlineKeyboardMarkup(button),
+            )
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "stream"
+        await mystic.delete()
+        return
+
+    # ── PLAYLIST STREAMING LOGIC ──
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
@@ -130,6 +201,7 @@ async def stream(
                 caption=_["play_21"].format(position, link),
                 reply_markup=upl,
             )
+
     elif streamtype == "youtube":
         link = result["link"]
         vidid = result["vidid"]
@@ -199,6 +271,7 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
+
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
@@ -249,6 +322,7 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "telegram":
         file_path = result["path"]
         link = result["link"]
@@ -301,6 +375,7 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "live":
         link = result["link"]
         vidid = result["vidid"]
@@ -367,6 +442,7 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "index":
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
