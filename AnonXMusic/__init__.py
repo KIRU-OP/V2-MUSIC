@@ -16,9 +16,17 @@ heroku()
 app = Anony()
 userbot = Userbot()
 
-# Import Platform APIs
-from .platforms import *
+# Direct Imports (Taaki NameError kabhi na aaye)
+from AnonXMusic.platforms.Apple import AppleAPI
+from AnonXMusic.platforms.Carbon import CarbonAPI
+from AnonXMusic.platforms.Saavn import SaavnAPI
+from AnonXMusic.platforms.Soundcloud import SoundAPI
+from AnonXMusic.platforms.Spotify import SpotifyAPI
+from AnonXMusic.platforms.Resso import RessoAPI
+from AnonXMusic.platforms.Telegram import TeleAPI
+from AnonXMusic.platforms.Youtube import YouTubeAPI
 
+# Initialize instances
 Apple = AppleAPI()
 Carbon = CarbonAPI()
 SoundCloud = SoundAPI()
@@ -27,3 +35,7 @@ Resso = RessoAPI()
 Telegram = TeleAPI()
 YouTube = YouTubeAPI()
 Saavn = SaavnAPI()
+
+# Compatibility Aliases (Bot ke baaki parts ke liye)
+JioSaavn = Saavn
+Jiosabun = Saavn
